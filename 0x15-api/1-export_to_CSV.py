@@ -1,47 +1,35 @@
 #!/usr/bin/python3
+
 """
-Python script that, using a REST API, for a given employee ID,
-returns information about his/her TODO list progress and exports
-the data to a CSV file.
+Python script that exports data in the CSV format
 """
 
-import requests
-import csv
+from requests import get
 from sys import argv
+import csv
 
 if __name__ == "__main__":
-    if len(argv) != 2:
-        print("Usage: {} <employee_id>".format(argv[0]))
-        exit(1)
+    response = get('https://jsonplaceholder.typicode.com/todos/')
+    data = response.json()
 
-    base_url = 'https://jsonplaceholder.typicode.com/'
-    todos_url = base_url + 'todos'
-    users_url = base_url + 'users/{}'.format(argv[1])
+    row = []
+    response2 = get('https://jsonplaceholder.typicode.com/users')
+    data2 = response2.json()
 
-    user_response = requests.get(users_url)
-    user_data = user_response.json()
+    for i in data2:
+        if i['id'] == int(argv[1]):
+            employee = i['username']
 
-    todos_response = requests.get(todos_url, params={'userId': argv[1]})
-    todos_data = todos_response.json()
+    with open(argv[1] + '.csv', 'w', newline='') as file:
+        writ = csv.writer(file, quoting=csv.QUOTE_ALL)
 
-    employee_id = user_data.get('id')
-    employee_name = user_data.get('username')
+        for i in data:
 
-    csv_file_name = '{}.csv'.format(employee_id)
+            row = []
+            if i['userId'] == int(argv[1]):
+                row.append(i['userId'])
+                row.append(employee)
+                row.append(i['completed'])
+                row.append(i['title'])
 
-    with open(csv_file_name, mode='w', newline='') as csvfile:
-        fieldnames = ['USER_ID', 'USERNAME', 'TASK_COMPLETED_STATUS', 'TASK_TITLE']
-        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-
-        writer.writeheader()
-
-        for task in todos_data:
-            writer.writerow({
-                'USER_ID': employee_id,
-                'USERNAME': employee_name,
-                'TASK_COMPLETED_STATUS': str(task.get('completed')),
-                'TASK_TITLE': task.get('title')
-            })
-
-    print("Data exported to {}".format(csv_file_name))
-
+                writ.writerow(row)
